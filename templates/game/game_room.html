@@ -141,11 +141,11 @@
                     <span x-show="winner === currentPlayer">🏆</span>
                     <span x-show="winner !== currentPlayer">😢</span>
                 </div>
-                <h2 class="text-4xl font-bold mb-4" x-text="winner === currentPlayer ? 'YOU WIN!' : 'YOU LOSE!'"></h2>
-                <p class="text-2xl text-gray-400 mb-6">Winner: <span class="text-yellow-400" x-text="winner"></span></p>
+                <h2 class="text-4xl font-bold mb-4" x-text="winner === currentPlayer ? '🏆 YOU WIN!' : (winner === 'TIE' ? '🤝 TIE GAME!' : '😢 YOU LOSE!')"></h2>
+                <p class="text-2xl text-gray-400 mb-6" x-show="winner !== 'TIE'">Winner: <span class="text-yellow-400 font-bold" x-text="winner"></span></p>
                 <div class="space-y-2 mb-6">
-                    <p class="text-lg">Your Score: <span class="text-blue-400 font-bold" x-text="player1Score"></span></p>
-                    <p class="text-lg">Opponent Score: <span class="text-red-400 font-bold" x-text="player2Score"></span></p>
+                    <p class="text-lg">Your Score: <span class="text-blue-400 font-bold" x-text="isPlayer1 ? player1Score : player2Score"></span></p>
+                    <p class="text-lg">Opponent Score: <span class="text-red-400 font-bold" x-text="isPlayer1 ? player2Score : player1Score"></span></p>
                 </div>
                 <a href="/multiplayer/" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg inline-block transition">
                     Back to Lobby
@@ -410,6 +410,7 @@ function multiplayerGame() {
                 // Monitor YOUR game state
                 this.gameUpdateInterval = setInterval(() => {
                     if (this.game && !this.game.gameOver) {
+                        // Update YOUR scores
                         if (this.isPlayer1) {
                             this.player1Score = this.game.score;
                             this.player1Level = this.game.level;
@@ -423,6 +424,9 @@ function multiplayerGame() {
                         
                         // Sync state to server (for opponent to see)
                         this.syncGameState();
+                        
+                        // Poll opponent's state
+                        this.pollOpponentState();
                     } else if (this.game && this.game.gameOver && !this.isGameOver) {
                         this.handleGameOver();
                     }
@@ -474,7 +478,8 @@ function multiplayerGame() {
                         score: this.game.score,
                         level: this.game.level,
                         lines: this.game.linesCleared,
-                        board: this.game.board
+                        board: this.game.board,
+                        gameOver: this.game.gameOver
                     })
                 });
             } catch (error) {
@@ -482,30 +487,67 @@ function multiplayerGame() {
             }
         },
         
+        async pollOpponentState() {
+            // Get opponent's game state from server
+            try {
+                const response = await fetch(`/api/room/${this.roomCode}/status/`);
+                const data = await response.json();
+                
+                // Update opponent's scores
+                if (this.isPlayer1 && data.player2_state) {
+                    this.player2Score = data.player2_state.score || 0;
+                    this.player2Level = data.player2_state.level || 1;
+                    this.player2Lines = data.player2_state.lines || 0;
+                    
+                    // Check if opponent's game is over
+                    if (data.player2_state.gameOver && !this.isGameOver) {
+                        console.log('� Opponent game over detected');
+                    }
+                } else if (!this.isPlayer1 && data.player1_state) {
+                    this.player1Score = data.player1_state.score || 0;
+                    this.player1Level = data.player1_state.level || 1;
+                    this.player1Lines = data.player1_state.lines || 0;
+                    
+                    // Check if opponent's game is over
+                    if (data.player1_state.gameOver && !this.isGameOver) {
+                        console.log('👀 Opponent game over detected');
+                    }
+                }
+            } catch (error) {
+                // Silently fail - not critical
+            }
+        },
+        
         handleGameOver() {
             console.log('💀 Game Over!');
-            clearInterval(this.gameUpdateInterval);
-            this.isGameOver = true;
             
             // Play game over sound
             if (typeof playSound === 'function') {
                 playSound('gameover');
             }
             
-            // Determine winner (higher score wins)
-            const myScore = this.isPlayer1 ? this.player1Score : this.player2Score;
-            const opponentScore = this.isPlayer1 ? this.player2Score : this.player1Score;
-            
-            if (myScore > opponentScore) {
-                this.winner = this.currentPlayer;
-                console.log('🏆 You win!');
-            } else if (opponentScore > myScore) {
-                this.winner = this.opponentName;
-                console.log('😢 You lose!');
-            } else {
-                this.winner = 'TIE';
-                console.log('🤝 It\'s a tie!');
-            }
+            // Wait a bit to ensure final scores are synced
+            setTimeout(() => {
+                clearInterval(this.gameUpdateInterval);
+                this.isGameOver = true;
+                
+                // Determine winner (higher score wins)
+                const myScore = this.isPlayer1 ? this.player1Score : this.player2Score;
+                const opponentScore = this.isPlayer1 ? this.player2Score : this.player1Score;
+                
+                console.log('📊 Final Scores - You:', myScore, 'Opponent:', opponentScore);
+                
+                if (myScore > opponentScore) {
+                    this.winner = this.currentPlayer;
+                    console.log('🏆 You win!');
+                } else if (opponentScore > myScore) {
+                    this.winner = this.opponentName || 'Opponent';
+                    console.log('😢 You lose!');
+                } else {
+                    this.winner = 'TIE';
+                    console.log('🤝 It\'s a tie!');
+                }
+            }, 500);
         },
         
         updateOpponentState(data) {

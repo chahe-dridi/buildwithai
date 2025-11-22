@@ -15,13 +15,20 @@ def room_status(request, room_code):
     """Get current room status"""
     try:
         room = MultiplayerRoom.objects.get(room_code=room_code)
+        
+        # Get player states from cache/session
+        player1_state = request.session.get(f'room_{room_code}_player1_state', {})
+        player2_state = request.session.get(f'room_{room_code}_player2_state', {})
+        
         return JsonResponse({
             'status': room.status,
             'player1': room.player1,
             'player2': room.player2,
             'player1_ready': room.player1_ready,
             'player2_ready': room.player2_ready,
-            'current_turn': room.current_turn
+            'current_turn': room.current_turn,
+            'player1_state': player1_state,
+            'player2_state': player2_state
         })
     except MultiplayerRoom.DoesNotExist:
         return JsonResponse({'error': 'Room not found'}, status=404)
@@ -38,8 +45,22 @@ def update_game_state(request, room_code):
         
         username = request.user.username
         
-        # Store game state in session or cache
-        # For now, we'll just acknowledge the update
+        # Store game state in session based on which player you are
+        state_data = {
+            'score': data.get('score', 0),
+            'level': data.get('level', 1),
+            'lines': data.get('lines', 0),
+            'board': data.get('board', []),
+            'gameOver': data.get('gameOver', False)
+        }
+        
+        if room.player1 == username:
+            request.session[f'room_{room_code}_player1_state'] = state_data
+        elif room.player2 == username:
+            request.session[f'room_{room_code}_player2_state'] = state_data
+        
+        request.session.modified = True
+        
         return JsonResponse({'success': True})
     except MultiplayerRoom.DoesNotExist:
         return JsonResponse({'error': 'Room not found'}, status=404)
