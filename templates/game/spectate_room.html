@@ -241,8 +241,10 @@ function spectatorMode() {
         
         startPolling() {
             this.pollGameState();
+            this.loadChatMessages();
             this.pollInterval = setInterval(() => {
                 this.pollGameState();
+                this.loadChatMessages();
             }, 1000); // Poll every second
         },
         
@@ -337,22 +339,60 @@ function spectatorMode() {
             }
         },
         
-        sendChatMessage() {
+        async sendChatMessage() {
             if (!this.chatInput.trim()) return;
             
-            this.chatMessages.push({
-                id: Date.now(),
-                username: this.username,
-                message: this.chatInput
-            });
-            
-            this.chatInput = '';
-            
-            // Scroll to bottom
-            this.$nextTick(() => {
-                const chatBox = document.getElementById('chatMessages');
-                chatBox.scrollTop = chatBox.scrollHeight;
-            });
+            try {
+                const response = await fetch(`/api/room/${this.roomCode}/chat/send/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': this.getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        message: this.chatInput
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    this.chatInput = '';
+                    await this.loadChatMessages();
+                    
+                    // Scroll to bottom
+                    this.$nextTick(() => {
+                        const chatBox = document.getElementById('chatMessages');
+                        chatBox.scrollTop = chatBox.scrollHeight;
+                    });
+                }
+            } catch (error) {
+                console.error('❌ Error sending message:', error);
+            }
+        },
+        
+        async loadChatMessages() {
+            try {
+                const response = await fetch(`/api/room/${this.roomCode}/chat/`);
+                const data = await response.json();
+                
+                if (data.messages) {
+                    this.chatMessages = data.messages;
+                    
+                    // Auto-scroll if at bottom
+                    this.$nextTick(() => {
+                        const chatBox = document.getElementById('chatMessages');
+                        if (chatBox) {
+                            const isAtBottom = chatBox.scrollHeight - chatBox.scrollTop <= chatBox.clientHeight + 50;
+                            if (isAtBottom) {
+                                chatBox.scrollTop = chatBox.scrollHeight;
+                            }
+                        }
+                    });
+                }
+            } catch (error) {
+                // Silent fail
+            }
         },
         
         getCookie(name) {

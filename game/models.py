@@ -86,12 +86,12 @@ class MultiplayerRoom(models.Model):
 
 class PowerUp(models.Model):
     POWER_UP_TYPES = [
-        ('time_freeze', 'Time Freeze'),
-        ('line_blaster', 'Line Blaster'),
-        ('color_bomb', 'Color Bomb'),
-        ('gravity_reverse', 'Gravity Reverse'),
-        ('piece_transformer', 'Piece Transformer'),
-        ('shadow_clone', 'Shadow Clone'),
+        ('add_lines', 'Add Lines to Enemy'),
+        ('speed_up', 'Speed Up Enemy'),
+        ('block_bomb', 'Block Bomb'),
+        ('screen_flip', 'Flip Enemy Screen'),
+        ('blind_attack', 'Blind Enemy'),
+        ('gravity_chaos', 'Gravity Chaos'),
     ]
     
     room_code = models.CharField(max_length=6)
@@ -107,3 +107,17 @@ class PowerUp(models.Model):
 
     def __str__(self):
         return f"{self.player} - {self.power_type} ({'Used' if self.used else 'Available'})"
+
+
+class ChatMessage(models.Model):
+    room_code = models.CharField(max_length=6)
+    username = models.CharField(max_length=50)
+    message = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        db_table = 'chat_messages'
+        ordering = ['timestamp']
+    
+    def __str__(self):
+        return f"{self.username}: {self.message[:50]}"

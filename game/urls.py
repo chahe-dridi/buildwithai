@@ -28,4 +28,9 @@ urlpatterns = [
     path('api/room/<str:room_code>/spectate/', api_views.join_spectator, name='join_spectator'),
     path('api/room/<str:room_code>/spectators/', api_views.get_spectators, name='get_spectators'),
     path('api/room/<str:room_code>/spectator/state/', api_views.spectator_game_state, name='spectator_game_state'),
+    
+    # Attack and Chat API
+    path('api/room/<str:room_code>/attacks/', api_views.check_attacks, name='check_attacks'),
+    path('api/room/<str:room_code>/chat/send/', api_views.send_chat_message, name='send_chat'),
+    path('api/room/<str:room_code>/chat/', api_views.get_chat_messages, name='get_chat'),
 ]

@@ -8,7 +8,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 import json
 import random
-from .models import MultiplayerRoom, GameSession, PowerUp
+from .models import MultiplayerRoom, GameSession, PowerUp, ChatMessage
 
 
 @login_required
@@ -135,32 +135,29 @@ def earn_powerup(request, room_code):
     try:
         data = json.loads(request.body)
         username = request.user.username
-        lines_cleared = data.get('lines_cleared', 0)
         
-        # Award power-up every 10 lines
-        if lines_cleared > 0 and lines_cleared % 10 == 0:
-            # Random power-up
-            power_types = ['time_freeze', 'line_blaster', 'color_bomb', 
-                          'gravity_reverse', 'piece_transformer', 'shadow_clone']
-            power_type = random.choice(power_types)
-            
-            powerup = PowerUp.objects.create(
-                room_code=room_code,
-                player=username,
-                power_type=power_type
-            )
-            
-            return JsonResponse({
-                'success': True,
-                'earned': True,
-                'powerup': {
-                    'id': powerup.id,
-                    'type': powerup.power_type,
-                    'display_name': powerup.get_power_type_display()
-                }
-            })
+        # Award power-up on EVERY line clear (not every 10)
+        # Random offensive power-up
+        power_types = ['add_lines', 'speed_up', 'block_bomb', 
+                      'screen_flip', 'blind_attack', 'gravity_chaos']
+        power_type = random.choice(power_types)
         
-        return JsonResponse({'success': True, 'earned': False})
+        powerup = PowerUp.objects.create(
+            room_code=room_code,
+            player=username,
+            power_type=power_type
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'earned': True,
+            'power_type': power_type,
+            'powerup': {
+                'id': powerup.id,
+                'type': powerup.power_type,
+                'display_name': powerup.get_power_type_display()
+            }
+        })
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
 
@@ -169,12 +166,13 @@ def earn_powerup(request, room_code):
 @csrf_exempt
 @require_http_methods(["POST"])
 def use_powerup(request, room_code):
-    """Use a power-up"""
+    """Use a power-up and apply attack to opponent"""
     try:
         data = json.loads(request.body)
         powerup_id = data.get('powerup_id')
         username = request.user.username
         
+        room = MultiplayerRoom.objects.get(room_code=room_code)
         powerup = PowerUp.objects.get(
             id=powerup_id,
             room_code=room_code,
@@ -182,15 +180,30 @@ def use_powerup(request, room_code):
             used=False
         )
         
+        # Determine opponent
+        opponent = room.player2 if username == room.player1 else room.player1
+        
         # Mark as used
         powerup.used = True
         powerup.used_at = timezone.now()
         powerup.save()
         
+        # Store attack in session for opponent to receive
+        attack_key = f'room_{room_code}_attack_{opponent}'
+        current_attacks = request.session.get(attack_key, [])
+        current_attacks.append({
+            'type': powerup.power_type,
+            'from': username,
+            'timestamp': timezone.now().isoformat()
+        })
+        request.session[attack_key] = current_attacks
+        request.session.modified = True
+        
         return JsonResponse({
             'success': True,
             'type': powerup.power_type,
-            'display_name': powerup.get_power_type_display()
+            'display_name': powerup.get_power_type_display(),
+            'target': opponent
         })
     except PowerUp.DoesNotExist:
         return JsonResponse({'error': 'Power-up not found or already used'}, status=404)
@@ -278,3 +291,85 @@ def spectator_game_state(request, room_code):
         })
     except MultiplayerRoom.DoesNotExist:
         return JsonResponse({'error': 'Room not found'}, status=404)
+
+
+@login_required
+@require_http_methods(["GET"])
+def check_attacks(request, room_code):
+    """Check for incoming attacks from opponent"""
+    try:
+        username = request.user.username
+        attack_key = f'room_{room_code}_attack_{username}'
+        
+        # Get and clear attacks
+        attacks = request.session.get(attack_key, [])
+        if attacks:
+            request.session[attack_key] = []
+            request.session.modified = True
+        
+        return JsonResponse({
+            'attacks': attacks
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+# ============================================
+# CHAT API
+# ============================================
+
+@login_required
+@csrf_exempt
+@require_http_methods(["POST"])
+def send_chat_message(request, room_code):
+    """Send a chat message (for spectators)"""
+    try:
+        data = json.loads(request.body)
+        message = data.get('message', '').strip()
+        
+        if not message:
+            return JsonResponse({'error': 'Message cannot be empty'}, status=400)
+        
+        username = request.user.username
+        
+        chat_msg = ChatMessage.objects.create(
+            room_code=room_code,
+            username=username,
+            message=message
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': {
+                'id': chat_msg.id,
+                'username': chat_msg.username,
+                'message': chat_msg.message,
+                'timestamp': chat_msg.timestamp.isoformat()
+            }
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+@login_required
+@require_http_methods(["GET"])
+def get_chat_messages(request, room_code):
+    """Get recent chat messages"""
+    try:
+        # Get last 50 messages
+        messages = ChatMessage.objects.filter(room_code=room_code).order_by('-timestamp')[:50]
+        messages = list(reversed(messages))  # Oldest first
+        
+        return JsonResponse({
+            'messages': [
+                {
+                    'id': msg.id,
+                    'username': msg.username,
+                    'message': msg.message,
+                    'timestamp': msg.timestamp.isoformat()
+                }
+                for msg in messages
+            ]
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)

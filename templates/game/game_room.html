@@ -200,35 +200,51 @@
             </div>
             
             <!-- Power-Ups -->
-            <div class="mt-4 bg-gradient-to-br from-purple-900/50 to-indigo-900/50 p-4 rounded-lg border-2 border-purple-500/30">
-                <p class="font-bold mb-3 text-purple-300">⚡ Power-Ups <span class="text-xs text-gray-400">(Press 1-6)</span></p>
+            <div class="mt-4 bg-gradient-to-br from-purple-900/50 to-indigo-900/50 p-4 rounded-lg border-2 border-purple-500/30 shadow-lg">
+                <p class="font-bold mb-3 text-purple-300 flex items-center justify-between">
+                    <span>⚡ Power-Ups</span>
+                    <span class="text-xs text-gray-400">(Press 1-6)</span>
+                </p>
                 <div class="grid grid-cols-3 gap-2">
                     <template x-for="(powerup, index) in powerups" :key="powerup.id">
                         <button @click="usePowerup(powerup)" 
                                 :class="{
                                     'opacity-50 cursor-not-allowed': !gameStarted || isPaused,
-                                    'transform hover:scale-110 hover:shadow-lg': gameStarted && !isPaused
+                                    'transform hover:scale-110 hover:shadow-2xl power-up-glow': gameStarted && !isPaused
                                 }"
                                 :disabled="!gameStarted || isPaused"
-                                class="bg-gray-800 p-3 rounded-lg border-2 border-purple-500/50 transition text-center relative overflow-hidden group">
-                            <!-- Glow effect -->
-                            <div class="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-pink-500/20 opacity-0 group-hover:opacity-100 transition"></div>
-                            <!-- Icon -->
-                            <div class="text-3xl mb-1 relative z-10" x-text="getPowerupIcon(powerup.power_type)"></div>
-                            <!-- Name -->
-                            <div class="text-xs font-bold text-purple-300 relative z-10" x-text="getPowerupName(powerup.power_type)"></div>
-                            <!-- Keyboard shortcut -->
-                            <div class="text-xs text-gray-500 mt-1 relative z-10" x-text="`[${index + 1}]`"></div>
+                                class="bg-gradient-to-br from-gray-800 to-gray-900 p-3 rounded-lg border-2 border-purple-500/50 transition-all text-center relative overflow-hidden group">
+                            <!-- Animated background -->
+                            <div class="absolute inset-0 bg-gradient-to-br from-purple-500/30 via-pink-500/30 to-red-500/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                            
+                            <!-- Shine effect -->
+                            <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                            
+                            <!-- Content -->
+                            <div class="relative z-10">
+                                <!-- Icon with pulsing glow -->
+                                <div class="text-4xl mb-1 filter drop-shadow-lg transform group-hover:scale-125 transition-transform duration-200" x-text="getPowerupIcon(powerup.power_type)"></div>
+                                <!-- Name -->
+                                <div class="text-xs font-bold text-purple-300 group-hover:text-yellow-300 transition-colors" x-text="getPowerupName(powerup.power_type)"></div>
+                                <!-- Keyboard shortcut badge -->
+                                <div class="absolute -top-1 -right-1 bg-yellow-500 text-black text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-lg" x-text="index + 1"></div>
+                            </div>
+                            
+                            <!-- Ready indicator -->
+                            <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-green-500 to-green-400"></div>
                         </button>
                     </template>
                     <!-- Empty slots -->
                     <template x-for="i in (6 - powerups.length)" :key="`empty-${i}`">
-                        <div class="bg-gray-900/50 p-3 rounded-lg border-2 border-gray-700/30 flex items-center justify-center">
-                            <span class="text-gray-600 text-2xl">🔒</span>
+                        <div class="bg-gray-900/50 p-3 rounded-lg border-2 border-gray-700/30 flex items-center justify-center relative">
+                            <span class="text-gray-600 text-3xl opacity-30">🔒</span>
+                            <div class="absolute inset-0 bg-gradient-to-br from-gray-800/20 to-gray-900/20"></div>
                         </div>
                     </template>
                 </div>
-                <p class="text-xs text-gray-400 mt-2 text-center">Clear 10 lines to earn power-ups!</p>
+                <p class="text-xs text-yellow-300 mt-3 text-center font-bold animate-pulse">
+                    🎯 Clear lines to earn attacks!
+                </p>
             </div>
         </div>
         
@@ -274,6 +290,126 @@
         </div>
     </div>
 </div>
+
+<style>
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); }
+    20%, 40%, 60%, 80% { transform: translateX(10px); }
+}
+
+@keyframes spin {
+    0% { border-color: #ef4444; }
+    25% { border-color: #eab308; }
+    50% { border-color: #22c55e; }
+    75% { border-color: #3b82f6; }
+    100% { border-color: #ef4444; }
+}
+
+@keyframes tornado {
+    0% { transform: rotate(0deg) scale(1); filter: blur(0px); }
+    25% { transform: rotate(90deg) scale(0.8); filter: blur(3px); }
+    50% { transform: rotate(180deg) scale(0.6); filter: blur(5px); }
+    75% { transform: rotate(270deg) scale(0.8); filter: blur(3px); }
+    100% { transform: rotate(360deg) scale(1); filter: blur(0px); }
+}
+
+@keyframes attackPulse {
+    0% { opacity: 0; }
+    50% { opacity: 1; }
+    100% { opacity: 0.8; }
+}
+
+@keyframes scaleIn {
+    0% { transform: scale(0) rotate(-180deg); opacity: 0; }
+    50% { transform: scale(1.2) rotate(10deg); }
+    100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+@keyframes progress {
+    from { width: 100%; }
+    to { width: 0%; }
+}
+
+@keyframes speedLines {
+    from { background-position-x: 0; }
+    to { background-position-x: 100px; }
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.power-up-glow {
+    animation: powerupGlow 2s ease-in-out infinite;
+}
+
+@keyframes powerupGlow {
+    0%, 100% {
+        box-shadow: 0 0 5px rgba(168, 85, 247, 0.5),
+                    0 0 10px rgba(168, 85, 247, 0.3),
+                    0 0 15px rgba(168, 85, 247, 0.2);
+    }
+    50% {
+        box-shadow: 0 0 10px rgba(168, 85, 247, 0.8),
+                    0 0 20px rgba(168, 85, 247, 0.6),
+                    0 0 30px rgba(168, 85, 247, 0.4);
+    }
+}
+
+@keyframes floatUp {
+    0% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(-100px) scale(1.5);
+        opacity: 0;
+    }
+}
+
+/* Freeze effect overlay */
+@keyframes freeze {
+    0%, 100% { 
+        filter: brightness(1.5) saturate(0) hue-rotate(180deg);
+        transform: scale(1);
+    }
+    50% { 
+        filter: brightness(2) saturate(0) hue-rotate(180deg);
+        transform: scale(1.02);
+    }
+}
+
+/* Glitch effect */
+@keyframes glitch {
+    0% { transform: translate(0); }
+    20% { transform: translate(-5px, 5px); }
+    40% { transform: translate(-5px, -5px); }
+    60% { transform: translate(5px, 5px); }
+    80% { transform: translate(5px, -5px); }
+    100% { transform: translate(0); }
+}
+
+/* Screen crack effect */
+@keyframes crack {
+    0% { 
+        background: linear-gradient(45deg, transparent 48%, rgba(255,0,0,0.3) 49%, rgba(255,0,0,0.3) 51%, transparent 52%);
+        opacity: 0;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+    }
+}
+</style>
 
 {% endblock %}
 
@@ -473,12 +609,15 @@ function multiplayerGame() {
                         }
                         this.isPaused = this.game.isPaused;
                         
-                        // Check for power-up earning (every 10 lines)
+                        // Check for power-up earning (EVERY line cleared)
                         const currentLines = this.game.linesCleared;
-                        if (currentLines > lastLineCount && currentLines % 10 === 0) {
+                        if (currentLines > lastLineCount) {
                             this.checkForNewPowerup();
+                            lastLineCount = currentLines;
                         }
-                        lastLineCount = currentLines;
+                        
+                        // Check for incoming attacks
+                        this.checkIncomingAttacks();
                         
                         // Sync state to server (for opponent to see)
                         this.syncGameState();
@@ -628,34 +767,89 @@ function multiplayerGame() {
         },
         
         async checkForNewPowerup() {
-            const currentLines = this.isPlayer1 ? this.player1Lines : this.player2Lines;
-            if (currentLines > 0 && currentLines % 10 === 0) {
-                try {
-                    const response = await fetch(`/api/room/${this.roomCode}/powerups/`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': this.getCookie('csrftoken')
-                        },
-                        body: JSON.stringify({ action: 'earn' })
-                    });
-                    const data = await response.json();
-                    if (data.earned) {
-                        this.showPowerupNotification(data.power_type);
-                        await this.loadPowerups();
-                    }
-                } catch (error) {
-                    console.error('❌ Error earning power-up:', error);
+            // Award power-up on EVERY line clear (not every 10)
+            try {
+                const response = await fetch(`/api/room/${this.roomCode}/powerups/earn/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': this.getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({})
+                });
+                const data = await response.json();
+                if (data.earned) {
+                    this.showPowerupNotification(data.power_type);
+                    await this.loadPowerups();
                 }
+            } catch (error) {
+                console.error('❌ Error earning power-up:', error);
             }
         },
         
         showPowerupNotification(powerType) {
+            // Create epic power-up earned notification
             const notification = document.createElement('div');
-            notification.className = 'fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-purple-600 text-white px-8 py-4 rounded-lg text-xl font-bold z-50 animate-bounce border-4 border-yellow-400 shadow-2xl';
-            notification.textContent = `⚡ ${this.getPowerupName(powerType)} Earned!`;
+            notification.className = 'fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50';
+            notification.style.animation = 'scaleIn 0.5s ease-out';
+            
+            notification.innerHTML = `
+                <div class="relative">
+                    <!-- Glowing background -->
+                    <div class="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 rounded-2xl blur-xl opacity-75 animate-pulse"></div>
+                    
+                    <!-- Main content -->
+                    <div class="relative bg-gradient-to-br from-purple-900 to-indigo-900 text-white px-12 py-8 rounded-2xl border-4 border-yellow-400 shadow-2xl">
+                        <div class="text-center">
+                            <div class="text-7xl mb-4 animate-bounce">${this.getPowerupIcon(powerType)}</div>
+                            <div class="text-3xl font-black mb-2" style="text-shadow: 0 0 10px #fbbf24, 0 0 20px #fbbf24;">
+                                POWER-UP!
+                            </div>
+                            <div class="text-2xl font-bold text-yellow-300">
+                                ${this.getPowerupName(powerType)}
+                            </div>
+                            <div class="mt-4 flex justify-center gap-2">
+                                <div class="w-3 h-3 bg-yellow-400 rounded-full animate-ping"></div>
+                                <div class="w-3 h-3 bg-yellow-400 rounded-full animate-ping" style="animation-delay: 0.2s"></div>
+                                <div class="w-3 h-3 bg-yellow-400 rounded-full animate-ping" style="animation-delay: 0.4s"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Particle effects -->
+                    <div class="absolute inset-0 pointer-events-none">
+                        ${this.createParticles()}
+                    </div>
+                </div>
+            `;
+            
             document.body.appendChild(notification);
-            setTimeout(() => notification.remove(), 2000);
+            
+            // Play sound effect if available
+            if (typeof playSound === 'function') {
+                playSound('clear');
+            }
+            
+            setTimeout(() => {
+                notification.style.animation = 'fadeOut 0.5s ease-out';
+                setTimeout(() => notification.remove(), 500);
+            }, 2000);
+        },
+        
+        createParticles() {
+            let particles = '';
+            for (let i = 0; i < 20; i++) {
+                const left = Math.random() * 100;
+                const delay = Math.random() * 0.5;
+                const duration = 1 + Math.random();
+                particles += `
+                    <div class="absolute text-2xl" 
+                         style="left: ${left}%; bottom: 0; animation: floatUp ${duration}s ease-out ${delay}s forwards;">
+                        ⭐
+                    </div>
+                `;
+            }
+            return particles;
         },
         
         async usePowerup(powerup) {
@@ -664,22 +858,21 @@ function multiplayerGame() {
             console.log('⚡ Using power-up:', powerup.power_type);
             
             try {
-                // Mark as used in backend
-                const response = await fetch(`/api/room/${this.roomCode}/powerups/`, {
+                // Mark as used in backend and send attack
+                const response = await fetch(`/api/room/${this.roomCode}/powerups/use/`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRFToken': this.getCookie('csrftoken')
                     },
                     body: JSON.stringify({ 
-                        action: 'use',
                         powerup_id: powerup.id 
                     })
                 });
                 const data = await response.json();
                 
                 if (data.success) {
-                    // Apply power-up effect
+                    // Show attack sent effect
                     this.applyPowerupEffect(powerup.power_type);
                     
                     // Remove from UI
@@ -691,136 +884,351 @@ function multiplayerGame() {
         },
         
         applyPowerupEffect(powerType) {
-            switch(powerType) {
-                case 'time_freeze':
-                    this.timeFreeze();
+            // Show epic attack sent notification
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-20 right-8 z-50';
+            notification.style.animation = 'scaleIn 0.3s ease-out';
+            
+            notification.innerHTML = `
+                <div class="relative">
+                    <div class="absolute inset-0 bg-red-600 rounded-lg blur-lg opacity-75 animate-pulse"></div>
+                    <div class="relative bg-gradient-to-r from-red-600 to-orange-600 text-white px-6 py-4 rounded-lg border-2 border-yellow-400 shadow-2xl">
+                        <div class="flex items-center gap-3">
+                            <div class="text-4xl animate-bounce">${this.getPowerupIcon(powerType)}</div>
+                            <div>
+                                <div class="text-lg font-black">ATTACK SENT!</div>
+                                <div class="text-sm font-bold text-yellow-300">${this.getPowerupName(powerType)}</div>
+                            </div>
+                            <div class="text-3xl">→</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Add screen flash
+            this.createScreenFlash('#ef4444');
+            
+            setTimeout(() => {
+                notification.style.animation = 'fadeOut 0.3s ease-out';
+                setTimeout(() => notification.remove(), 300);
+            }, 1700);
+        },
+        
+        createScreenFlash(color) {
+            const flash = document.createElement('div');
+            flash.className = 'fixed inset-0 pointer-events-none z-40';
+            flash.style.background = color;
+            flash.style.opacity = '0.3';
+            flash.style.animation = 'fadeOut 0.5s ease-out';
+            document.body.appendChild(flash);
+            setTimeout(() => flash.remove(), 500);
+        },
+        
+        async checkIncomingAttacks() {
+            try {
+                const response = await fetch(`/api/room/${this.roomCode}/attacks/`);
+                const data = await response.json();
+                
+                if (data.attacks && data.attacks.length > 0) {
+                    for (const attack of data.attacks) {
+                        this.receiveAttack(attack.type, attack.from);
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Error checking attacks:', error);
+            }
+        },
+        
+        receiveAttack(attackType, fromPlayer) {
+            if (!this.game || !this.game.board) return;
+            
+            console.log(`💥 Received ${attackType} attack from ${fromPlayer}!`);
+            
+            // Epic incoming attack warning
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-20 left-8 z-50';
+            notification.style.animation = 'glitch 0.5s ease-in-out 3';
+            
+            notification.innerHTML = `
+                <div class="relative">
+                    <div class="absolute inset-0 bg-red-600 rounded-lg blur-xl opacity-75 animate-pulse"></div>
+                    <div class="relative bg-gradient-to-r from-red-700 via-red-600 to-red-700 text-white px-6 py-4 rounded-lg border-4 border-yellow-400 shadow-2xl">
+                        <div class="flex items-center gap-3">
+                            <div class="text-3xl">←</div>
+                            <div>
+                                <div class="text-lg font-black animate-pulse" style="text-shadow: 0 0 10px #fbbf24;">
+                                    ⚠️ INCOMING ATTACK!
+                                </div>
+                                <div class="text-sm font-bold text-yellow-300">${this.getPowerupName(attackType)}</div>
+                                <div class="text-xs text-gray-300">from ${fromPlayer}</div>
+                            </div>
+                            <div class="text-4xl animate-bounce">${this.getPowerupIcon(attackType)}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Screen shake and red flash
+            this.createScreenFlash('#dc2626');
+            const canvas = document.getElementById(this.myCanvasId);
+            canvas.style.animation = 'shake 0.3s ease-in-out';
+            setTimeout(() => canvas.style.animation = '', 300);
+            
+            setTimeout(() => {
+                notification.style.animation = 'fadeOut 0.3s ease-out';
+                setTimeout(() => notification.remove(), 300);
+            }, 2500);
+            
+            switch(attackType) {
+                case 'add_lines':
+                    this.attackAddLines();
                     break;
-                case 'line_blaster':
-                    this.lineBlaster();
+                case 'speed_up':
+                    this.attackSpeedUp();
                     break;
-                case 'color_bomb':
-                    this.colorBomb();
+                case 'block_bomb':
+                    this.attackBlockBomb();
                     break;
-                case 'gravity_reverse':
-                    this.gravityReverse();
+                case 'screen_flip':
+                    this.attackScreenFlip();
                     break;
-                case 'piece_transformer':
-                    this.pieceTransformer();
+                case 'blind_attack':
+                    this.attackBlind();
                     break;
-                case 'shadow_clone':
-                    this.shadowClone();
+                case 'gravity_chaos':
+                    this.attackGravityChaos();
                     break;
             }
         },
         
-        timeFreeze() {
-            console.log('⏰ Time Freeze activated!');
-            const originalSpeed = this.game.dropInterval;
-            this.game.dropInterval = 999999; // Effectively stop piece descent
-            this.activePowerup = 'time_freeze';
-            
-            // Visual effect
+        attackAddLines() {
+            // Add 2-4 random garbage lines at the bottom with shake animation
+            const linesToAdd = Math.floor(Math.random() * 3) + 2;
             const canvas = document.getElementById(this.myCanvasId);
-            canvas.style.filter = 'brightness(1.5) saturate(1.5)';
+            
+            // Earthquake shake animation
+            canvas.style.animation = 'shake 0.5s ease-in-out 3';
+            
+            // Add lines with visual effect
+            for (let i = 0; i < linesToAdd; i++) {
+                const garbageLine = Array(10).fill(0).map(() => Math.random() > 0.3 ? 'Z' : 0);
+                this.game.board.push(garbageLine);
+                this.game.board.shift();
+            }
+            
+            // Screen flash and overlay
+            this.createAttackOverlay('📊', 'ADD LINES!', '#ef4444', 1500);
+            this.flashEffect('red');
+            
+            setTimeout(() => {
+                canvas.style.animation = '';
+            }, 1500);
+        },
+        
+        attackSpeedUp() {
+            // Double the speed for 5 seconds with visual indicator
+            const originalSpeed = this.game.dropInterval;
+            this.game.dropInterval = Math.max(50, originalSpeed / 2);
+            
+            const canvas = document.getElementById(this.myCanvasId);
+            
+            // Continuous fast pulsing effect
+            const pulseInterval = setInterval(() => {
+                canvas.style.filter = 'brightness(1.5) saturate(2)';
+                setTimeout(() => {
+                    canvas.style.filter = 'brightness(1) saturate(1)';
+                }, 100);
+            }, 200);
+            
+            // Speed lines overlay
+            this.createAttackOverlay('⚡', 'SPEED UP!', '#eab308', 5000);
+            this.addSpeedLines(canvas);
             
             setTimeout(() => {
                 this.game.dropInterval = originalSpeed;
+                clearInterval(pulseInterval);
                 canvas.style.filter = 'none';
-                this.activePowerup = null;
             }, 5000);
         },
         
-        lineBlaster() {
-            console.log('💥 Line Blaster activated!');
-            if (!this.game || !this.game.board) return;
-            
-            // Find a random non-empty line
-            const fullLines = [];
-            for (let row = 0; row < this.game.board.length; row++) {
-                if (this.game.board[row].some(cell => cell !== 0)) {
-                    fullLines.push(row);
-                }
-            }
-            
-            if (fullLines.length > 0) {
-                const randomLine = fullLines[Math.floor(Math.random() * fullLines.length)];
-                this.game.board.splice(randomLine, 1);
-                this.game.board.unshift(Array(10).fill(0));
-                
-                // Visual flash
-                this.flashEffect('red');
-            }
-        },
-        
-        colorBomb() {
-            console.log('🌈 Color Bomb activated!');
-            if (!this.game || !this.game.board) return;
-            
-            // Find all colors on the board
-            const colors = new Set();
-            for (let row of this.game.board) {
-                for (let cell of row) {
-                    if (cell !== 0) colors.add(cell);
-                }
-            }
-            
-            if (colors.size > 0) {
-                // Pick a random color
-                const colorsArray = Array.from(colors);
-                const targetColor = colorsArray[Math.floor(Math.random() * colorsArray.length)];
-                
-                // Remove all blocks of that color
-                for (let row = 0; row < this.game.board.length; row++) {
-                    for (let col = 0; col < this.game.board[row].length; col++) {
-                        if (this.game.board[row][col] === targetColor) {
-                            this.game.board[row][col] = 0;
-                        }
-                    }
-                }
-                
-                // Apply gravity
-                this.applyGravity();
-                this.flashEffect('purple');
-            }
-        },
-        
-        gravityReverse() {
-            console.log('🔄 Gravity Reverse activated!');
-            if (!this.game) return;
-            
-            // Flip the board
-            this.game.board.reverse();
-            this.activePowerup = 'gravity_reverse';
-            
+        attackBlockBomb() {
+            // Add random blocks with explosion effect
             const canvas = document.getElementById(this.myCanvasId);
-            canvas.style.transform = 'scaleY(-1)';
+            
+            // Multiple explosion flashes
+            let flashCount = 0;
+            const explosionInterval = setInterval(() => {
+                if (flashCount < 5) {
+                    this.createExplosion(canvas);
+                    flashCount++;
+                } else {
+                    clearInterval(explosionInterval);
+                }
+            }, 300);
+            
+            // Add blocks
+            for (let i = 0; i < 15; i++) {
+                const row = Math.floor(Math.random() * 15) + 5;
+                const col = Math.floor(Math.random() * 10);
+                if (this.game.board[row] && this.game.board[row][col] === 0) {
+                    this.game.board[row][col] = 'I';
+                }
+            }
+            
+            this.createAttackOverlay('💣', 'BLOCK BOMB!', '#a855f7', 2000);
+        },
+        
+        attackScreenFlip() {
+            // Flip the board upside down for 8 seconds with rotation animation
+            const canvas = document.getElementById(this.myCanvasId);
+            
+            // Smooth flip animation
+            canvas.style.transition = 'transform 1s ease-in-out';
+            canvas.style.transform = 'rotateX(180deg)';
             
             setTimeout(() => {
                 this.game.board.reverse();
-                canvas.style.transform = 'none';
-                this.activePowerup = null;
-            }, 10000);
+                canvas.style.transform = 'scaleY(-1)';
+            }, 500);
+            
+            this.createAttackOverlay('🔄', 'SCREEN FLIP!', '#06b6d4', 8000);
+            
+            // Dizzy effect borders
+            canvas.style.animation = 'spin 2s linear infinite';
+            
+            setTimeout(() => {
+                canvas.style.transition = 'transform 1s ease-in-out';
+                canvas.style.transform = 'rotateX(0deg)';
+                setTimeout(() => {
+                    this.game.board.reverse();
+                    canvas.style.transform = 'none';
+                    canvas.style.animation = '';
+                }, 500);
+            }, 7500);
         },
         
-        pieceTransformer() {
-            console.log('🔀 Piece Transformer activated!');
-            if (!this.game || !this.game.currentPiece) return;
+        attackBlind() {
+            // Cover the canvas with darkness and fog effect
+            const canvas = document.getElementById(this.myCanvasId);
+            const overlay = document.createElement('div');
             
-            const pieces = ['I', 'O', 'T', 'S', 'Z', 'J', 'L'];
-            const newType = pieces[Math.floor(Math.random() * pieces.length)];
+            overlay.className = 'absolute inset-0 pointer-events-none z-40';
+            overlay.style.background = 'radial-gradient(circle, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.95) 100%)';
+            overlay.style.animation = 'pulse 0.5s ease-in-out infinite';
+            overlay.innerHTML = '<div class="absolute inset-0 flex items-center justify-center text-6xl animate-pulse">👁️</div>';
             
-            if (typeof TETROMINOES !== 'undefined' && TETROMINOES[newType]) {
-                this.game.currentPiece.type = newType;
-                this.game.currentPiece.shape = JSON.parse(JSON.stringify(TETROMINOES[newType].shape));
-                this.flashEffect('cyan');
+            canvas.parentElement.style.position = 'relative';
+            canvas.parentElement.appendChild(overlay);
+            
+            // Heavy blur and darkness
+            canvas.style.filter = 'brightness(0.15) blur(8px) contrast(0.5)';
+            
+            this.createAttackOverlay('👁️', 'BLINDED!', '#dc2626', 5000);
+            
+            setTimeout(() => {
+                canvas.style.transition = 'filter 1s ease-out';
+                canvas.style.filter = 'none';
+                overlay.remove();
+            }, 5000);
+        },
+        
+        attackGravityChaos() {
+            // Scramble all blocks with tornado effect
+            const canvas = document.getElementById(this.myCanvasId);
+            
+            // Tornado spin animation
+            canvas.style.animation = 'tornado 1.5s ease-in-out';
+            
+            // Collect all blocks
+            const allBlocks = [];
+            for (let row = 0; row < this.game.board.length; row++) {
+                for (let col = 0; col < this.game.board[row].length; col++) {
+                    if (this.game.board[row][col] !== 0) {
+                        allBlocks.push(this.game.board[row][col]);
+                        this.game.board[row][col] = 0;
+                    }
+                }
             }
+            
+            // Scramble effect
+            setTimeout(() => {
+                // Place blocks randomly
+                allBlocks.forEach(block => {
+                    let placed = false;
+                    let attempts = 0;
+                    while (!placed && attempts < 50) {
+                        const row = Math.floor(Math.random() * 20);
+                        const col = Math.floor(Math.random() * 10);
+                        if (this.game.board[row][col] === 0) {
+                            this.game.board[row][col] = block;
+                            placed = true;
+                        }
+                        attempts++;
+                    }
+                });
+                
+                this.applyGravity();
+            }, 750);
+            
+            this.createAttackOverlay('🌪️', 'GRAVITY CHAOS!', '#8b5cf6', 2000);
+            
+            setTimeout(() => {
+                canvas.style.animation = '';
+            }, 1500);
         },
         
-        shadowClone() {
-            console.log('👥 Shadow Clone activated!');
-            // Create a ghost piece that can be placed separately
-            // This is simplified - full implementation would need game.js modifications
-            this.flashEffect('yellow');
+        createAttackOverlay(icon, text, color, duration) {
+            // Create full-screen attack overlay with animation
+            const overlay = document.createElement('div');
+            overlay.className = 'fixed inset-0 pointer-events-none z-50 flex items-center justify-center';
+            overlay.style.background = `linear-gradient(135deg, ${color}33 0%, ${color}66 50%, ${color}33 100%)`;
+            overlay.style.animation = 'attackPulse 0.5s ease-in-out';
+            overlay.innerHTML = `
+                <div class="text-center transform scale-0 animate-bounce" style="animation: scaleIn 0.3s ease-out forwards">
+                    <div class="text-9xl mb-4 animate-pulse drop-shadow-2xl">${icon}</div>
+                    <div class="text-6xl font-black text-white drop-shadow-2xl tracking-wider" style="text-shadow: 0 0 20px ${color}, 0 0 40px ${color}, 0 0 60px ${color};">
+                        ${text}
+                    </div>
+                    <div class="mt-4 h-2 bg-white rounded-full overflow-hidden w-64 mx-auto">
+                        <div class="h-full bg-gradient-to-r from-yellow-400 to-red-600" style="animation: progress ${duration}ms linear forwards"></div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(overlay);
+            
+            setTimeout(() => {
+                overlay.style.animation = 'fadeOut 0.5s ease-out';
+                setTimeout(() => overlay.remove(), 500);
+            }, duration - 500);
+        },
+        
+        createExplosion(canvas) {
+            // Create explosion particle effect
+            canvas.style.filter = 'brightness(2) saturate(2) hue-rotate(45deg)';
+            setTimeout(() => {
+                canvas.style.filter = 'brightness(0.5) saturate(0.5)';
+                setTimeout(() => {
+                    canvas.style.filter = 'none';
+                }, 100);
+            }, 100);
+        },
+        
+        addSpeedLines(canvas) {
+            // Add speed line effect overlay
+            const speedOverlay = document.createElement('div');
+            speedOverlay.className = 'absolute inset-0 pointer-events-none';
+            speedOverlay.style.background = 'repeating-linear-gradient(90deg, transparent, transparent 10px, rgba(255,255,0,0.3) 10px, rgba(255,255,0,0.3) 12px)';
+            speedOverlay.style.animation = 'speedLines 0.3s linear infinite';
+            
+            canvas.parentElement.style.position = 'relative';
+            canvas.parentElement.appendChild(speedOverlay);
+            
+            setTimeout(() => speedOverlay.remove(), 5000);
         },
         
         applyGravity() {
@@ -856,26 +1264,26 @@ function multiplayerGame() {
         
         getPowerupIcon(powerType) {
             const icons = {
-                'time_freeze': '⏰',
-                'line_blaster': '💥',
-                'color_bomb': '🌈',
-                'gravity_reverse': '🔄',
-                'piece_transformer': '🔀',
-                'shadow_clone': '👥'
+                'add_lines': '📊',
+                'speed_up': '⚡',
+                'block_bomb': '💣',
+                'screen_flip': '🔄',
+                'blind_attack': '�️',
+                'gravity_chaos': '🌪️'
             };
             return icons[powerType] || '⚡';
         },
         
         getPowerupName(powerType) {
             const names = {
-                'time_freeze': 'Time Freeze',
-                'line_blaster': 'Line Blaster',
-                'color_bomb': 'Color Bomb',
-                'gravity_reverse': 'Gravity Reverse',
-                'piece_transformer': 'Transformer',
-                'shadow_clone': 'Shadow Clone'
+                'add_lines': 'Add Lines',
+                'speed_up': 'Speed Up',
+                'block_bomb': 'Block Bomb',
+                'screen_flip': 'Screen Flip',
+                'blind_attack': 'Blind',
+                'gravity_chaos': 'Gravity Chaos'
             };
-            return names[powerType] || 'Power-Up';
+            return names[powerType] || 'Attack';
         },
         
         getCookie(name) {
