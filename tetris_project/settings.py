@@ -17,7 +17,14 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-tetris-game-dev-key-c
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
+# Get ALLOWED_HOSTS from environment or use defaults
+ALLOWED_HOSTS_STR = config('ALLOWED_HOSTS', default='localhost,127.0.0.1')
+ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_STR.split(',') if host.strip()]
+
+# If on Render (has DATABASE_URL but ALLOWED_HOSTS not set), add Render domain
+if config('DATABASE_URL', default=None) and len(ALLOWED_HOSTS) <= 2:
+    ALLOWED_HOSTS.append('buildwithai.onrender.com')
+    ALLOWED_HOSTS.append('.onrender.com')  # Allow all onrender.com subdomains
 
 
 # Application definition
