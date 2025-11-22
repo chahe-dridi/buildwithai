@@ -1,0 +1,534 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Game Room - {{ room_code }}{% endblock %}
+
+{% block content %}
+<div x-data="multiplayerGame()" x-init="init()" class="max-w-7xl mx-auto">
+    <!-- Control Scheme Selection Modal -->
+    <div x-show="!controlSchemeSelected" 
+         class="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50">
+        <div class="bg-gray-800 p-10 rounded-2xl max-w-2xl w-full border-2 border-cyan-500/50 text-center">
+            <h2 class="text-4xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">
+                🎮 Choose Your Controls
+            </h2>
+            <p class="text-gray-400 mb-8">Select your preferred control scheme for the game</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Arrow Keys -->
+                <button @click="selectControls('arrows')" 
+                        class="bg-gradient-to-br from-blue-900/50 to-blue-800/50 hover:from-blue-800 hover:to-blue-700 p-8 rounded-xl border-2 border-blue-500/30 hover:border-blue-400 transition transform hover:scale-105">
+                    <div class="text-6xl mb-4">⬆️</div>
+                    <h3 class="text-2xl font-bold mb-3 text-blue-400">Arrow Keys</h3>
+                    <div class="space-y-2 text-left text-sm text-gray-300">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xl">⬆️</span>
+                            <span>Rotate</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xl">⬅️➡️</span>
+                            <span>Move Left/Right</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xl">⬇️</span>
+                            <span>Soft Drop</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xl">⎵</span>
+                            <span>Hard Drop</span>
+                        </div>
+                    </div>
+                    <div class="mt-4 text-xs text-gray-500">Classic • Standard Layout</div>
+                </button>
+                
+                <!-- ZQSD Keys -->
+                <button @click="selectControls('zqsd')" 
+                        class="bg-gradient-to-br from-purple-900/50 to-purple-800/50 hover:from-purple-800 hover:to-purple-700 p-8 rounded-xl border-2 border-purple-500/30 hover:border-purple-400 transition transform hover:scale-105">
+                    <div class="text-6xl mb-4">🇫🇷</div>
+                    <h3 class="text-2xl font-bold mb-3 text-purple-400">ZQSD Keys</h3>
+                    <div class="space-y-2 text-left text-sm text-gray-300">
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-purple-400">Z</span>
+                            <span>Rotate</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-purple-400">Q / D</span>
+                            <span>Move Left/Right</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-purple-400">S</span>
+                            <span>Soft Drop</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xl">⎵</span>
+                            <span>Hard Drop</span>
+                        </div>
+                    </div>
+                    <div class="mt-4 text-xs text-gray-500">AZERTY • French Layout</div>
+                </button>
+            </div>
+            
+            <p class="text-xs text-gray-500 mt-6">💡 You can change this later in settings</p>
+        </div>
+    </div>
+
+    <!-- Room Header -->
+    <div class="bg-gradient-to-br from-gray-800 to-gray-900 p-8 rounded-2xl mb-8 text-center relative border-2 border-cyan-500/30 shadow-xl">
+        <h1 class="text-4xl font-bold mb-3">
+            🎮 Room: <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400">{{ room_code }}</span>
+        </h1>
+        <p class="text-gray-300 text-lg mb-4">Share this code or QR with your opponent!</p>
+        
+        <!-- Quick Actions -->
+        <div class="flex gap-4 justify-center items-center mb-4">
+            <!-- Copy Code Button -->
+            <button @click="navigator.clipboard.writeText('{{ room_code }}').then(() => alert('✅ Room code copied!'))" 
+                    class="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 px-6 py-2 rounded-lg text-sm transition transform hover:scale-105 shadow-lg font-bold">
+                📋 Copy Code
+            </button>
+            
+            <!-- Toggle QR Code Button -->
+            <button @click="showQRCode = !showQRCode" 
+                    class="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 px-6 py-2 rounded-lg text-sm transition transform hover:scale-105 shadow-lg font-bold">
+                📱 <span x-text="showQRCode ? 'Hide QR Code' : 'Show QR Code'"></span>
+            </button>
+        </div>
+        
+        <!-- QR Code Display -->
+        <div x-show="showQRCode" 
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 scale-90"
+             x-transition:enter-end="opacity-100 scale-100"
+             class="mt-4">
+            <div class="inline-block bg-white p-6 rounded-xl shadow-2xl">
+                <p class="text-gray-800 font-bold mb-3 text-sm">Scan to Join!</p>
+                <div id="roomQRCode"></div>
+                <p class="text-gray-600 text-xs mt-3">Or enter code at: <span class="font-mono text-blue-600">{{ request.get_host }}/multiplayer/</span></p>
+            </div>
+        </div>
+        
+        <!-- Waiting Status -->
+        <div x-show="!gameStarted && !isGameOver" class="mt-6">
+            <div class="bg-yellow-900/30 border border-yellow-500/50 rounded-lg p-4 inline-block">
+                <div class="flex items-center justify-center space-x-3 mb-2">
+                    <div class="animate-pulse text-2xl">⏳</div>
+                    <p class="text-yellow-400 font-bold text-lg">Waiting for opponent...</p>
+                </div>
+                <p class="text-gray-400 text-sm" x-show="isPlayer1">
+                    👆 Share the room code or QR code above with your friend!
+                </p>
+                <p class="text-gray-400 text-sm" x-show="!isPlayer1">
+                    🎮 Get ready! The game will start soon...
+                </p>
+            </div>
+        </div>
+        
+        <!-- Game Started Status -->
+        <div x-show="gameStarted && !isGameOver" class="mt-4">
+            <div class="flex items-center justify-center space-x-2">
+                <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                <p class="text-green-400">Game in progress!</p>
+            </div>
+        </div>
+        
+        <!-- Game Over Overlay -->
+        <div x-show="isGameOver" 
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 transform scale-90"
+             x-transition:enter-end="opacity-100 transform scale-100"
+             class="absolute inset-0 bg-gray-900 bg-opacity-95 flex items-center justify-center rounded-lg">
+            <div class="text-center p-8">
+                <div class="text-6xl mb-4">
+                    <span x-show="winner === currentPlayer">🏆</span>
+                    <span x-show="winner !== currentPlayer">😢</span>
+                </div>
+                <h2 class="text-4xl font-bold mb-4" x-text="winner === currentPlayer ? 'YOU WIN!' : 'YOU LOSE!'"></h2>
+                <p class="text-2xl text-gray-400 mb-6">Winner: <span class="text-yellow-400" x-text="winner"></span></p>
+                <div class="space-y-2 mb-6">
+                    <p class="text-lg">Your Score: <span class="text-blue-400 font-bold" x-text="player1Score"></span></p>
+                    <p class="text-lg">Opponent Score: <span class="text-red-400 font-bold" x-text="player2Score"></span></p>
+                </div>
+                <a href="/multiplayer/" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg inline-block transition">
+                    Back to Lobby
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Game Area -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Your Game (Left for player 1, Right for player 2) -->
+        <div class="bg-gray-800 p-6 rounded-lg" :class="{'order-first': isPlayer1, 'order-last': !isPlayer1}">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold text-blue-400">{{ request.user.username }}</h2>
+                <span class="text-sm bg-blue-600 px-3 py-1 rounded-full">YOU</span>
+            </div>
+            
+            <div class="mb-4 relative">
+                <canvas :id="myCanvasId" width="300" height="600" class="mx-auto border-4 border-blue-500 rounded shadow-lg"></canvas>
+                <!-- Paused Overlay -->
+                <div x-show="isPaused" class="absolute inset-0 bg-black bg-opacity-75 flex items-center justify-center rounded">
+                    <p class="text-3xl font-bold text-white">⏸️ PAUSED</p>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-3 gap-4 text-center">
+                <div class="bg-gray-700 p-3 rounded">
+                    <div class="text-gray-400 text-sm mb-1">Score</div>
+                    <div x-text="player1Score" class="text-2xl font-bold text-blue-400">0</div>
+                </div>
+                <div class="bg-gray-700 p-3 rounded">
+                    <div class="text-gray-400 text-sm mb-1">Level</div>
+                    <div x-text="player1Level" class="text-2xl font-bold text-green-400">1</div>
+                </div>
+                <div class="bg-gray-700 p-3 rounded">
+                    <div class="text-gray-400 text-sm mb-1">Lines</div>
+                    <div x-text="player1Lines" class="text-2xl font-bold text-purple-400">0</div>
+                </div>
+            </div>
+            
+            <!-- Controls Help -->
+            <div class="mt-4 p-3 bg-gray-700 rounded text-sm">
+                <p class="font-bold mb-2">🎮 Controls:</p>
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                    <div>← → : Move</div>
+                    <div>↑ : Rotate</div>
+                    <div>↓ : Soft Drop</div>
+                    <div>Space : Hard Drop</div>
+                    <div>C : Hold</div>
+                    <div>P : Pause</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Opponent's Game -->
+        <div class="bg-gray-800 p-6 rounded-lg" :class="{'order-last': isPlayer1, 'order-first': !isPlayer1}">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold text-red-400" x-text="opponentName"></h2>
+                <span class="text-sm bg-red-600 px-3 py-1 rounded-full">OPPONENT</span>
+            </div>
+            
+            <div class="mb-4 relative">
+                <canvas :id="opponentCanvasId" width="300" height="600" class="mx-auto border-4 border-red-500 rounded shadow-lg opacity-90"></canvas>
+                <!-- Waiting for Opponent Overlay -->
+                <div x-show="!gameStarted" class="absolute inset-0 bg-black bg-opacity-75 flex items-center justify-center rounded">
+                    <div class="text-center">
+                        <div class="text-4xl mb-2 animate-bounce">⏳</div>
+                        <p class="text-xl font-bold text-white">Waiting...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-3 gap-4 text-center">
+                <div class="bg-gray-700 p-3 rounded">
+                    <div class="text-gray-400 text-sm mb-1">Score</div>
+                    <div x-text="player2Score" class="text-2xl font-bold text-blue-400">0</div>
+                </div>
+                <div class="bg-gray-700 p-3 rounded">
+                    <div class="text-gray-400 text-sm mb-1">Level</div>
+                    <div x-text="player2Level" class="text-2xl font-bold text-green-400">1</div>
+                </div>
+                <div class="bg-gray-700 p-3 rounded">
+                    <div class="text-gray-400 text-sm mb-1">Lines</div>
+                    <div x-text="player2Lines" class="text-2xl font-bold text-purple-400">0</div>
+                </div>
+            </div>
+            
+            <!-- Status -->
+            <div class="mt-4 p-3 bg-gray-700 rounded text-center">
+                <p class="text-sm text-gray-400" x-show="!gameStarted">Waiting for opponent to join...</p>
+                <p class="text-sm text-green-400 animate-pulse" x-show="gameStarted && !isGameOver">🎮 Playing...</p>
+                <p class="text-sm text-red-400" x-show="isGameOver">Game Over</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- QR Code Library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="/static/js/tetrominoes.js"></script>
+<script src="/static/js/sounds.js"></script>
+<script src="/static/js/game.js"></script>
+<script src="/static/js/multiplayer-game.js"></script>
+<script>
+function multiplayerGame() {
+    return {
+        // Control Scheme
+        controlSchemeSelected: false,
+        controlScheme: 'arrows', // 'arrows' or 'zqsd'
+        showQRCode: false,
+        
+        // State
+        pollInterval: null,
+        gameUpdateInterval: null,
+        game: null,
+        opponentGame: null,
+        gameStarted: false,
+        isGameOver: false,
+        isPaused: false,
+        
+        // Scores
+        player1Score: 0,
+        player1Level: 1,
+        player1Lines: 0,
+        player2Score: 0,
+        player2Level: 1,
+        player2Lines: 0,
+        
+        // Players
+        roomCode: '{{ room_code }}',
+        currentPlayer: '{{ request.user.username }}',
+        isPlayer1: '{{ request.user.username }}' === '{{ room.player1 }}',
+        opponentName: '',
+        winner: '',
+        
+        // Canvas IDs
+        myCanvasId: '{{ request.user.username }}' === '{{ room.player1 }}' ? 'player1Canvas' : 'player2Canvas',
+        opponentCanvasId: '{{ request.user.username }}' === '{{ room.player1 }}' ? 'player2Canvas' : 'player1Canvas',
+        
+        init() {
+            console.log('🎮 Initializing multiplayer game...');
+            console.log('Room:', this.roomCode);
+            console.log('Player:', this.currentPlayer);
+            console.log('Is Player 1:', this.isPlayer1);
+            console.log('My canvas:', this.myCanvasId);
+            console.log('Opponent canvas:', this.opponentCanvasId);
+            
+            // Show QR code automatically if you're player 1 (room creator)
+            if (this.isPlayer1) {
+                this.showQRCode = true;
+                console.log('📱 Auto-showing QR code for room creator');
+            }
+            
+            // Generate QR Code for room
+            this.$nextTick(() => {
+                this.generateQRCode();
+            });
+            
+            // Initialize sound system
+            if (typeof initSounds === 'function') {
+                initSounds();
+            }
+            
+            // Control scheme will be selected via modal before game starts
+        },
+        
+        selectControls(scheme) {
+            this.controlScheme = scheme;
+            this.controlSchemeSelected = true;
+            console.log('🎮 Control scheme selected:', scheme);
+            
+            // Now initialize the game with selected controls
+            this.markPlayerReady();
+            this.startPolling();
+        },
+        
+        generateQRCode() {
+            const qrContainer = document.getElementById('roomQRCode');
+            if (qrContainer && !qrContainer.hasChildNodes()) {
+                const roomUrl = window.location.href;
+                new QRCode(qrContainer, {
+                    text: roomUrl,
+                    width: 200,
+                    height: 200,
+                    colorDark: '#000000',
+                    colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+            }
+        },
+        
+        async markPlayerReady() {
+            try {
+                const response = await fetch(`/api/room/${this.roomCode}/ready/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': this.getCookie('csrftoken')
+                    }
+                });
+                const data = await response.json();
+                console.log('✅ Player ready response:', data);
+                
+                if (data.both_ready) {
+                    this.gameStarted = true;
+                    this.opponentName = this.isPlayer1 ? '{{ room.player2 }}' : '{{ room.player1 }}';
+                    setTimeout(() => this.startGame(), 500);
+                }
+            } catch (error) {
+                console.error('❌ Error marking player ready:', error);
+            }
+        },
+        
+        startPolling() {
+            this.pollInterval = setInterval(() => {
+                this.checkRoomStatus();
+            }, 2000);
+        },
+        
+        async checkRoomStatus() {
+            try {
+                const response = await fetch(`/api/room/${this.roomCode}/status/`);
+                const data = await response.json();
+                
+                // Set opponent name
+                this.opponentName = this.isPlayer1 ? data.player2 : data.player1;
+                
+                // Check if both players ready
+                if (data.player2 && !this.gameStarted) {
+                    if (data.player1_ready && data.player2_ready && data.status === 'active') {
+                        console.log('🎮 Both players ready! Starting game...');
+                        this.gameStarted = true;
+                        this.startGame();
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Error checking room status:', error);
+            }
+        },
+        
+        startGame() {
+            console.log('🚀 Starting game on canvas:', this.myCanvasId);
+            console.log('🎮 Using control scheme:', this.controlScheme);
+            clearInterval(this.pollInterval);
+            
+            try {
+                // Play start sound
+                if (typeof playSound === 'function') {
+                    playSound('move');
+                }
+                
+                // Initialize YOUR game with selected control scheme
+                this.game = new TetrisGame(this.myCanvasId, this.controlScheme);
+                this.game.start();
+                
+                // Initialize opponent's display (read-only)
+                this.initOpponentDisplay();
+                
+                // Monitor YOUR game state
+                this.gameUpdateInterval = setInterval(() => {
+                    if (this.game && !this.game.gameOver) {
+                        if (this.isPlayer1) {
+                            this.player1Score = this.game.score;
+                            this.player1Level = this.game.level;
+                            this.player1Lines = this.game.linesCleared;
+                        } else {
+                            this.player2Score = this.game.score;
+                            this.player2Level = this.game.level;
+                            this.player2Lines = this.game.linesCleared;
+                        }
+                        this.isPaused = this.game.isPaused;
+                        
+                        // Sync state to server (for opponent to see)
+                        this.syncGameState();
+                    } else if (this.game && this.game.gameOver && !this.isGameOver) {
+                        this.handleGameOver();
+                    }
+                }, 200);
+                
+                console.log('✅ Game started successfully!');
+            } catch (error) {
+                console.error('❌ Error starting game:', error);
+                alert('Error: ' + error.message);
+            }
+        },
+        
+        initOpponentDisplay() {
+            // Create a visual representation of opponent's board
+            const canvas = document.getElementById(this.opponentCanvasId);
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#1a1a2e';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw grid
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 1;
+                for (let i = 0; i <= 20; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, i * 30);
+                    ctx.lineTo(300, i * 30);
+                    ctx.stroke();
+                }
+                for (let i = 0; i <= 10; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(i * 30, 0);
+                    ctx.lineTo(i * 30, 600);
+                    ctx.stroke();
+                }
+            }
+        },
+        
+        async syncGameState() {
+            // Send game state to server for opponent to see
+            try {
+                await fetch(`/api/room/${this.roomCode}/update/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': this.getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        score: this.game.score,
+                        level: this.game.level,
+                        lines: this.game.linesCleared,
+                        board: this.game.board
+                    })
+                });
+            } catch (error) {
+                // Silently fail - not critical
+            }
+        },
+        
+        handleGameOver() {
+            console.log('💀 Game Over!');
+            clearInterval(this.gameUpdateInterval);
+            this.isGameOver = true;
+            
+            // Play game over sound
+            if (typeof playSound === 'function') {
+                playSound('gameover');
+            }
+            
+            // Determine winner (higher score wins)
+            const myScore = this.isPlayer1 ? this.player1Score : this.player2Score;
+            const opponentScore = this.isPlayer1 ? this.player2Score : this.player1Score;
+            
+            if (myScore > opponentScore) {
+                this.winner = this.currentPlayer;
+                console.log('🏆 You win!');
+            } else if (opponentScore > myScore) {
+                this.winner = this.opponentName;
+                console.log('😢 You lose!');
+            } else {
+                this.winner = 'TIE';
+                console.log('🤝 It\'s a tie!');
+            }
+        },
+        
+        updateOpponentState(data) {
+            this.player2Score = data.score;
+            this.player2Level = data.level;
+            this.player2Lines = data.lines;
+        },
+        
+        getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    }
+}
+</script>
+{% endblock %}

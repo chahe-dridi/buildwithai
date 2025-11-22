@@ -1,0 +1,450 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Play Tetris{% endblock %}
+
+{% block content %}
+<style>
+    /* Epic gaming background */
+    @keyframes matrixRain {
+        0% { transform: translateY(-100%); }
+        100% { transform: translateY(100vh); }
+    }
+    
+    .game-arena {
+        background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+        position: relative;
+    }
+    
+    /* Pulsing border effect */
+    @keyframes borderPulse {
+        0%, 100% { box-shadow: 0 0 20px rgba(0, 255, 136, 0.5); }
+        50% { box-shadow: 0 0 40px rgba(0, 255, 136, 0.8), 0 0 60px rgba(0, 255, 136, 0.4); }
+    }
+    
+    .game-board {
+        animation: borderPulse 2s ease-in-out infinite;
+    }
+    
+    /* Stats glow effect */
+    .stat-card {
+        background: rgba(20, 20, 40, 0.8);
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(0, 255, 136, 0.3);
+        transition: all 0.3s ease;
+    }
+    
+    .stat-card:hover {
+        border-color: rgba(0, 255, 136, 0.8);
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0, 255, 136, 0.3);
+    }
+    
+    /* Countdown animation */
+    @keyframes countdownPulse {
+        0% { transform: scale(0.5); opacity: 0; }
+        50% { transform: scale(1.2); opacity: 1; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+</style>
+
+<div x-data="{ 
+    gameStarted: false, 
+    countdown: 0, 
+    controlSchemeSelected: false, 
+    controlScheme: 'arrows',
+    selectControls(scheme) {
+        this.controlScheme = scheme;
+        this.controlSchemeSelected = true;
+        // Store in window for access by startGame()
+        window.selectedControlScheme = scheme;
+    }
+}" class="max-w-7xl mx-auto">
+    
+    <!-- Control Scheme Selection Modal -->
+    <div x-show="gameStarted && !controlSchemeSelected" 
+         class="fixed inset-0 bg-black/95 flex items-center justify-center z-50 backdrop-blur-sm"
+         style="display: none;">
+        <div class="text-center max-w-4xl mx-auto p-8">
+            <h2 class="text-5xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400">
+                🎮 Choose Your Controls
+            </h2>
+            <p class="text-xl text-gray-400 mb-12">Select your preferred control scheme</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Arrow Keys -->
+                <button @click="selectControls('arrows')" 
+                        class="group bg-gradient-to-br from-blue-900/60 to-purple-900/60 hover:from-blue-800 hover:to-purple-800 p-10 rounded-3xl border-4 border-blue-500/30 hover:border-blue-400 transition-all transform hover:scale-105 text-left">
+                    <div class="text-4xl mb-4">⌨️</div>
+                    <h3 class="text-3xl font-bold mb-4 text-cyan-400">Arrow Keys</h3>
+                    <div class="space-y-3 text-gray-300">
+                        <p class="text-lg">⬆️ Rotate</p>
+                        <p class="text-lg">⬅️ Move Left</p>
+                        <p class="text-lg">➡️ Move Right</p>
+                        <p class="text-lg">⬇️ Soft Drop</p>
+                        <p class="text-lg">⎵ Hard Drop</p>
+                    </div>
+                    <div class="mt-6 text-sm text-blue-400 group-hover:text-blue-300">
+                        Best for QWERTY keyboards
+                    </div>
+                </button>
+                
+                <!-- ZQSD Keys -->
+                <button @click="selectControls('zqsd')" 
+                        class="group bg-gradient-to-br from-purple-900/60 to-pink-900/60 hover:from-purple-800 hover:to-pink-800 p-10 rounded-3xl border-4 border-purple-500/30 hover:border-purple-400 transition-all transform hover:scale-105 text-left">
+                    <div class="text-4xl mb-4">🇫🇷</div>
+                    <h3 class="text-3xl font-bold mb-4 text-pink-400">ZQSD Keys</h3>
+                    <div class="space-y-3 text-gray-300">
+                        <p class="text-lg">Z Rotate</p>
+                        <p class="text-lg">Q Move Left</p>
+                        <p class="text-lg">D Move Right</p>
+                        <p class="text-lg">S Soft Drop</p>
+                        <p class="text-lg">⎵ Hard Drop</p>
+                    </div>
+                    <div class="mt-6 text-sm text-pink-400 group-hover:text-pink-300">
+                        Best for AZERTY keyboards (French)
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Epic Game Start Screen -->
+    <div x-show="!gameStarted" class="text-center py-20">
+        <div class="mb-12">
+            <h1 class="text-7xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500 animate-pulse">
+                ⚡ GAME ARENA ⚡
+            </h1>
+            <p class="text-3xl text-gray-300 mb-4">Prepare yourself, warrior!</p>
+            <p class="text-xl text-gray-500">🎮 The challenge awaits 🎮</p>
+        </div>
+        
+        <div class="max-w-2xl mx-auto mb-12 stat-card p-8 rounded-2xl">
+            <h2 class="text-2xl font-bold mb-6 text-cyan-400">🎯 YOUR MISSION</h2>
+            <div class="grid grid-cols-3 gap-6 text-left">
+                <div class="text-center">
+                    <div class="text-4xl mb-2">📈</div>
+                    <p class="text-sm text-gray-400">Clear lines</p>
+                </div>
+                <div class="text-center">
+                    <div class="text-4xl mb-2">⚡</div>
+                    <p class="text-sm text-gray-400">Get combos</p>
+                </div>
+                <div class="text-center">
+                    <div class="text-4xl mb-2">🏆</div>
+                    <p class="text-sm text-gray-400">Beat records</p>
+                </div>
+            </div>
+        </div>
+        
+        <button @click="countdown = 3; gameStarted = true; 
+                        let timer = setInterval(() => { 
+                            countdown--; 
+                            if(countdown === 0) { 
+                                clearInterval(timer); 
+                                startGame(); 
+                            } 
+                        }, 1000);" 
+                class="bg-gradient-to-r from-green-600 via-cyan-600 to-blue-600 hover:from-green-700 hover:via-cyan-700 hover:to-blue-700 text-white px-16 py-6 rounded-2xl text-3xl shadow-2xl hover:shadow-cyan-500/50 transition transform hover:scale-110 font-bold">
+            🚀 START BATTLE
+        </button>
+        
+        <div class="mt-12 text-gray-400">
+            <p class="text-sm">💡 Tip: Use arrow keys to move and spacebar to drop</p>
+        </div>
+    </div>
+    
+    <!-- Countdown Overlay -->
+    <div x-show="countdown > 0 && controlSchemeSelected" 
+         class="fixed inset-0 bg-black/90 flex items-center justify-center z-50"
+         style="display: none;">
+        <div class="text-center">
+            <div x-text="countdown" 
+                 class="text-9xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-red-500 to-pink-500"
+                 style="animation: countdownPulse 1s ease-in-out;"></div>
+            <p class="text-2xl text-gray-400 mt-4">Get Ready...</p>
+            <p class="text-lg text-cyan-400 mt-2" x-text="'Controls: ' + (controlScheme === 'arrows' ? 'Arrow Keys' : 'ZQSD Keys')"></p>
+        </div>
+    </div>
+    
+    <!-- Game Screen -->
+    <div x-show="gameStarted && countdown === 0 && controlSchemeSelected" class="grid grid-cols-1 lg:grid-cols-3 gap-8" style="display: none;">
+        <!-- Left Panel: Stats & Hold -->
+        <div class="space-y-6">
+            <!-- Stats Panel -->
+            <div class="stat-card p-6 rounded-2xl relative overflow-hidden">
+                <div class="absolute top-0 right-0 text-6xl opacity-5">📊</div>
+                <h2 class="text-2xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400">
+                    📊 BATTLE STATS
+                </h2>
+                
+                <div class="space-y-4">
+                    <div class="bg-gradient-to-r from-blue-900/50 to-blue-800/50 p-5 rounded-xl border-2 border-blue-500/30 hover:border-blue-400 transition">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="text-gray-300 text-sm font-semibold">💎 SCORE</div>
+                            <div class="text-xs text-blue-400">CURRENT</div>
+                        </div>
+                        <div id="score" class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">0</div>
+                    </div>
+                    
+                    <div class="bg-gradient-to-r from-green-900/50 to-green-800/50 p-5 rounded-xl border-2 border-green-500/30 hover:border-green-400 transition">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="text-gray-300 text-sm font-semibold">⚡ LEVEL</div>
+                            <div class="text-xs text-green-400">DIFFICULTY</div>
+                        </div>
+                        <div id="level" class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-400">1</div>
+                    </div>
+                    
+                    <div class="bg-gradient-to-r from-purple-900/50 to-purple-800/50 p-5 rounded-xl border-2 border-purple-500/30 hover:border-purple-400 transition">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="text-gray-300 text-sm font-semibold">🔥 LINES</div>
+                            <div class="text-xs text-purple-400">CLEARED</div>
+                        </div>
+                        <div id="lines" class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">0</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Hold Piece -->
+            <div class="stat-card p-6 rounded-2xl relative overflow-hidden">
+                <div class="absolute top-0 right-0 text-6xl opacity-5">📦</div>
+                <h2 class="text-xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">
+                    📦 STORAGE
+                </h2>
+                <div class="bg-gradient-to-br from-purple-900/30 to-pink-900/30 p-4 rounded-xl border-2 border-purple-500/30">
+                    <canvas id="heldPieceCanvas" width="120" height="120" class="mx-auto bg-black/50 rounded-lg"></canvas>
+                </div>
+                <p class="text-xs text-gray-400 mt-3 text-center">
+                    <span class="bg-purple-900/50 px-3 py-1 rounded-full">Press [C] to hold</span>
+                </p>
+            </div>
+            
+            <!-- Controls -->
+            <div class="stat-card p-6 rounded-2xl relative overflow-hidden">
+                <div class="absolute top-0 right-0 text-6xl opacity-5">🎮</div>
+                <h3 class="text-xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-400">
+                    🎮 CONTROLS
+                </h3>
+                
+                <!-- Control Scheme Indicator -->
+                <div class="mb-4 bg-gradient-to-r from-cyan-900/50 to-blue-900/50 p-3 rounded-lg border border-cyan-500/30">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-gray-400">Active Scheme:</span>
+                        <span class="text-sm font-bold" x-text="controlScheme === 'arrows' ? '⌨️ Arrow Keys' : '🇫🇷 ZQSD Keys'" 
+                              :class="controlScheme === 'arrows' ? 'text-cyan-400' : 'text-pink-400'"></span>
+                    </div>
+                </div>
+                
+                <div class="space-y-2">
+                    <!-- Arrow Keys Controls -->
+                    <template x-if="controlScheme === 'arrows'">
+                        <div class="space-y-2">
+                            <div class="bg-gray-800/50 p-3 rounded-lg flex items-center gap-3 hover:bg-gray-700/50 transition">
+                                <span class="text-2xl">⬅️➡️</span>
+                                <span class="text-sm text-gray-300">Move Left/Right</span>
+                            </div>
+                            <div class="bg-gray-800/50 p-3 rounded-lg flex items-center gap-3 hover:bg-gray-700/50 transition">
+                                <span class="text-2xl">⬆️</span>
+                                <span class="text-sm text-gray-300">Rotate Piece</span>
+                            </div>
+                            <div class="bg-gray-800/50 p-3 rounded-lg flex items-center gap-3 hover:bg-gray-700/50 transition">
+                                <span class="text-2xl">⬇️</span>
+                                <span class="text-sm text-gray-300">Soft Drop</span>
+                            </div>
+                        </div>
+                    </template>
+                    
+                    <!-- ZQSD Keys Controls -->
+                    <template x-if="controlScheme === 'zqsd'">
+                        <div class="space-y-2">
+                            <div class="bg-gray-800/50 p-3 rounded-lg flex items-center gap-3 hover:bg-gray-700/50 transition">
+                                <span class="text-2xl">Q/D</span>
+                                <span class="text-sm text-gray-300">Move Left/Right</span>
+                            </div>
+                            <div class="bg-gray-800/50 p-3 rounded-lg flex items-center gap-3 hover:bg-gray-700/50 transition">
+                                <span class="text-2xl">Z</span>
+                                <span class="text-sm text-gray-300">Rotate Piece</span>
+                            </div>
+                            <div class="bg-gray-800/50 p-3 rounded-lg flex items-center gap-3 hover:bg-gray-700/50 transition">
+                                <span class="text-2xl">S</span>
+                                <span class="text-sm text-gray-300">Soft Drop</span>
+                            </div>
+                        </div>
+                    </template>
+                    
+                    <!-- Common Controls -->
+                    <div class="bg-gradient-to-r from-yellow-900/50 to-orange-900/50 p-3 rounded-lg flex items-center gap-3 border border-yellow-500/30">
+                        <span class="text-2xl">⎵</span>
+                        <span class="text-sm text-yellow-300 font-bold">Hard Drop</span>
+                    </div>
+                    <div class="bg-gray-800/50 p-3 rounded-lg flex items-center gap-3 hover:bg-gray-700/50 transition">
+                        <span class="text-2xl">📦</span>
+                        <span class="text-sm text-gray-300">Hold [C]</span>
+                    </div>
+                    <div class="bg-gray-800/50 p-3 rounded-lg flex items-center gap-3 hover:bg-gray-700/50 transition">
+                        <span class="text-2xl">⏸️</span>
+                        <span class="text-sm text-gray-300">Pause [P]</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Center: Game Board -->
+        <div class="flex flex-col items-center">
+            <h2 class="text-3xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-green-400 via-cyan-400 to-blue-400">
+                ⚔️ BATTLE ARENA ⚔️
+            </h2>
+            <div class="relative">
+                <canvas id="gameCanvas" class="game-board border-4 border-cyan-500 rounded-2xl shadow-2xl"></canvas>
+                
+                <!-- Pause Overlay -->
+                <div id="pauseOverlay" class="hidden absolute inset-0 bg-black/90 flex items-center justify-center rounded-2xl backdrop-blur-sm">
+                    <div class="text-center">
+                        <div class="text-6xl mb-6 animate-pulse">⏸️</div>
+                        <p class="text-5xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-400">PAUSED</p>
+                        <p class="text-xl text-gray-400">Press [P] to resume battle</p>
+                    </div>
+                </div>
+                
+                <!-- Combo Indicator (appears on combos) -->
+                <div id="comboIndicator" class="hidden absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+                    <div class="text-6xl font-black text-yellow-400 animate-ping">COMBO!</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Panel: Next Pieces & Objectives -->
+        <div class="space-y-6">
+            <!-- Next Pieces -->
+            <div class="stat-card p-6 rounded-2xl relative overflow-hidden">
+                <div class="absolute top-0 right-0 text-6xl opacity-5">⏭️</div>
+                <h2 class="text-2xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-400">
+                    ⏭️ INCOMING
+                </h2>
+                <div class="bg-gradient-to-br from-green-900/30 to-emerald-900/30 p-4 rounded-xl border-2 border-green-500/30">
+                    <canvas id="nextPieceCanvas" width="120" height="240" class="mx-auto bg-black/50 rounded-lg"></canvas>
+                </div>
+                <p class="text-xs text-gray-400 mt-3 text-center">
+                    <span class="bg-green-900/50 px-3 py-1 rounded-full">Next pieces</span>
+                </p>
+            </div>
+            
+            <!-- Mission Objectives -->
+            <div class="stat-card p-6 rounded-2xl relative overflow-hidden">
+                <div class="absolute top-0 right-0 text-6xl opacity-5">🎯</div>
+                <h3 class="text-xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-400">
+                    🎯 MISSION
+                </h3>
+                <ul class="space-y-3">
+                    <li class="bg-gradient-to-r from-gray-800/50 to-gray-700/50 p-3 rounded-lg flex items-center gap-2">
+                        <span class="text-green-400">✓</span>
+                        <span class="text-sm text-gray-300">Clear lines to score</span>
+                    </li>
+                    <li class="bg-gradient-to-r from-gray-800/50 to-gray-700/50 p-3 rounded-lg flex items-center gap-2">
+                        <span class="text-green-400">✓</span>
+                        <span class="text-sm text-gray-300">Level up every 10 lines</span>
+                    </li>
+                    <li class="bg-gradient-to-r from-gray-800/50 to-gray-700/50 p-3 rounded-lg flex items-center gap-2">
+                        <span class="text-green-400">✓</span>
+                        <span class="text-sm text-gray-300">Survive as long as possible</span>
+                    </li>
+                    <li class="bg-gradient-to-r from-yellow-900/50 to-orange-900/50 p-3 rounded-lg flex items-center gap-2 border border-yellow-500/30">
+                        <span class="text-yellow-400">★</span>
+                        <span class="text-sm text-yellow-300 font-bold">Get a Tetris (4 lines)!</span>
+                    </li>
+                </ul>
+            </div>
+            
+            <!-- Achievement Badges -->
+            <div class="stat-card p-6 rounded-2xl relative overflow-hidden">
+                <div class="absolute top-0 right-0 text-6xl opacity-5">🏅</div>
+                <h3 class="text-xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-400">
+                    🏅 ACHIEVEMENTS
+                </h3>
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="bg-gray-800/50 p-3 rounded-lg text-center opacity-30 hover:opacity-100 transition" title="Score 1000+">
+                        <div class="text-2xl">🥉</div>
+                        <div class="text-xs text-gray-500 mt-1">Bronze</div>
+                    </div>
+                    <div class="bg-gray-800/50 p-3 rounded-lg text-center opacity-30 hover:opacity-100 transition" title="Score 5000+">
+                        <div class="text-2xl">🥈</div>
+                        <div class="text-xs text-gray-500 mt-1">Silver</div>
+                    </div>
+                    <div class="bg-gray-800/50 p-3 rounded-lg text-center opacity-30 hover:opacity-100 transition" title="Score 10000+">
+                        <div class="text-2xl">🥇</div>
+                        <div class="text-xs text-gray-500 mt-1">Gold</div>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-500 mt-3 text-center">Unlock by reaching milestones!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Epic Game Over Modal -->
+<div id="gameOverModal" class="hidden fixed inset-0 bg-black/95 flex items-center justify-center z-50 backdrop-blur-sm">
+    <div class="stat-card p-12 rounded-3xl max-w-3xl text-center relative overflow-hidden border-4 border-red-500/50">
+        <div class="absolute inset-0 bg-gradient-to-br from-red-900/20 to-orange-900/20"></div>
+        <div class="relative z-10">
+            <!-- Animated Game Over Title -->
+            <div class="text-8xl mb-6 animate-bounce">💀</div>
+            <h2 class="text-6xl font-black mb-6 text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500">
+                GAME OVER
+            </h2>
+            <p class="text-2xl text-gray-400 mb-8">Your battle has ended, warrior!</p>
+            
+            <!-- Final Stats -->
+            <div class="grid grid-cols-3 gap-6 mb-10">
+                <div class="bg-gradient-to-br from-blue-900/50 to-blue-800/50 p-6 rounded-xl border-2 border-blue-500/30">
+                    <div class="text-sm text-gray-400 mb-2">FINAL SCORE</div>
+                    <div id="finalScore" class="text-4xl font-black text-blue-400">0</div>
+                </div>
+                <div class="bg-gradient-to-br from-green-900/50 to-green-800/50 p-6 rounded-xl border-2 border-green-500/30">
+                    <div class="text-sm text-gray-400 mb-2">LEVEL REACHED</div>
+                    <div id="finalLevel" class="text-4xl font-black text-green-400">1</div>
+                </div>
+                <div class="bg-gradient-to-br from-purple-900/50 to-purple-800/50 p-6 rounded-xl border-2 border-purple-500/30">
+                    <div class="text-sm text-gray-400 mb-2">LINES CLEARED</div>
+                    <div id="finalLines" class="text-4xl font-black text-purple-400">0</div>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="space-y-4">
+                <div class="flex gap-4">
+                    <button onclick="location.reload()" 
+                        class="flex-1 bg-gradient-to-r from-green-600 to-cyan-600 hover:from-green-700 hover:to-cyan-700 text-white px-8 py-4 rounded-xl text-xl font-bold transition transform hover:scale-105 shadow-xl">
+                        🔄 PLAY AGAIN
+                    </button>
+                    <a href="{% url 'game:leaderboard' %}" 
+                       class="flex-1 bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-white px-8 py-4 rounded-xl text-xl font-bold transition transform hover:scale-105 shadow-xl flex items-center justify-center">
+                        🏆 LEADERBOARD
+                    </a>
+                </div>
+                <a href="{% url 'game:home' %}" 
+                   class="block bg-gradient-to-r from-gray-700 to-gray-600 hover:from-gray-800 hover:to-gray-700 text-white px-8 py-3 rounded-xl transition transform hover:scale-105 shadow-lg text-center">
+                    ← Return to Menu
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="/static/js/tetrominoes.js"></script>
+<script src="/static/js/sounds.js"></script>
+<script src="/static/js/game.js"></script>
+<script>
+    let game;
+    
+    function startGame() {
+        // Get control scheme from window (set by Alpine.js selectControls)
+        const selectedControlScheme = window.selectedControlScheme || 'arrows';
+        
+        console.log('🎮 Starting game with control scheme:', selectedControlScheme);
+        game = new TetrisGame('gameCanvas', selectedControlScheme);
+        game.start();
+    }
+</script>
+{% endblock %}

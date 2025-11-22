@@ -1,0 +1,49 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto">
+    <div class="bg-gray-800 p-8 rounded-lg shadow-xl">
+        <h1 class="text-3xl font-bold mb-6 text-center">🔐 Login</h1>
+        
+        <form method="post" class="space-y-4">
+            {% csrf_token %}
+            
+            {% if form.errors %}
+            <div class="bg-red-500 text-white p-4 rounded">
+                <p>Invalid username or password. Please try again.</p>
+            </div>
+            {% endif %}
+            
+            <div>
+                <label for="{{ form.username.id_for_label }}" class="block text-gray-400 mb-2">Username</label>
+                {{ form.username }}
+                <input type="text" 
+                       name="username" 
+                       id="{{ form.username.id_for_label }}"
+                       class="w-full bg-gray-700 text-white px-4 py-3 rounded-lg"
+                       required>
+            </div>
+            
+            <div>
+                <label for="{{ form.password.id_for_label }}" class="block text-gray-400 mb-2">Password</label>
+                <input type="password" 
+                       name="password" 
+                       id="{{ form.password.id_for_label }}"
+                       class="w-full bg-gray-700 text-white px-4 py-3 rounded-lg"
+                       required>
+            </div>
+            
+            <button type="submit" 
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition">
+                Login
+            </button>
+        </form>
+        
+        <div class="mt-6 text-center text-gray-400">
+            <p>Don't have an account? <a href="{% url 'accounts:register' %}" class="text-blue-400 hover:underline">Register here</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
