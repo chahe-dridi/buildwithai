@@ -72,5 +72,3 @@ You may also want to add a multiplayer mode.
   - **Gameplay**: Both players play simultaneously in their own
     playfield, visible on a split screen or side-by-side.
     The first player to "block out" loses the round.
-
-
