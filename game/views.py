@@ -145,3 +145,19 @@ def game_room(request, room_code):
         return render(request, 'game/game_room.html', context)
     except MultiplayerRoom.DoesNotExist:
         return redirect('game:multiplayer')
+
+
+def spectate_room(request, room_code):
+    """Spectator view for watching a game"""
+    try:
+        room = MultiplayerRoom.objects.get(room_code=room_code)
+        username = request.user.username if request.user.is_authenticated else f"Spectator{random.randint(1000, 9999)}"
+        
+        context = {
+            'room': room,
+            'room_code': room_code,
+            'username': username
+        }
+        return render(request, 'game/spectate_room.html', context)
+    except MultiplayerRoom.DoesNotExist:
+        return redirect('game:multiplayer')

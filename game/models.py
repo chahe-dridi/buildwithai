@@ -72,6 +72,8 @@ class MultiplayerRoom(models.Model):
         ('finished', 'Finished'),
     ], default='waiting')
     winner = models.CharField(max_length=50, null=True, blank=True)
+    spectators = models.JSONField(default=list, blank=True)  # List of spectator usernames
+    allow_spectators = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -80,3 +82,28 @@ class MultiplayerRoom(models.Model):
 
     def __str__(self):
         return f"Room {self.room_code} - {self.status}"
+
+
+class PowerUp(models.Model):
+    POWER_UP_TYPES = [
+        ('time_freeze', 'Time Freeze'),
+        ('line_blaster', 'Line Blaster'),
+        ('color_bomb', 'Color Bomb'),
+        ('gravity_reverse', 'Gravity Reverse'),
+        ('piece_transformer', 'Piece Transformer'),
+        ('shadow_clone', 'Shadow Clone'),
+    ]
+    
+    room_code = models.CharField(max_length=6)
+    player = models.CharField(max_length=50)
+    power_type = models.CharField(max_length=20, choices=POWER_UP_TYPES)
+    used = models.BooleanField(default=False)
+    earned_at = models.DateTimeField(auto_now_add=True)
+    used_at = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        db_table = 'power_ups'
+        ordering = ['-earned_at']
+
+    def __str__(self):
+        return f"{self.player} - {self.power_type} ({'Used' if self.used else 'Available'})"

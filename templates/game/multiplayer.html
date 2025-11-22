@@ -63,6 +63,27 @@
         </div>
     </div>
     
+    <!-- Spectate Room Card -->
+    <div class="mt-8 max-w-4xl mx-auto">
+        <div class="bg-gradient-to-br from-purple-900/50 to-indigo-900/50 p-8 rounded-lg hover:shadow-2xl transition border-2 border-purple-500/30">
+            <div class="text-5xl mb-4">👁️</div>
+            <h2 class="text-2xl font-bold mb-4">Spectate Mode</h2>
+            <p class="text-gray-400 mb-6">Watch epic battles in progress!</p>
+            <form onsubmit="spectateRoom(event)" class="space-y-4">
+                <input type="text" 
+                       id="spectateRoomCode" 
+                       placeholder="Room Code to Spectate" 
+                       maxlength="6"
+                       class="bg-gray-700 text-white px-4 py-3 rounded-lg w-full text-center text-xl uppercase"
+                       required>
+                <button type="submit" 
+                        class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-8 py-3 rounded-lg w-full transition transform hover:scale-105 shadow-lg font-bold">
+                    👁️ Spectate Game
+                </button>
+            </form>
+        </div>
+    </div>
+    
     <!-- Instructions -->
     <div class="mt-12 bg-gray-800 p-8 rounded-lg">
         <h2 class="text-2xl font-bold mb-4">ℹ️ How Multiplayer Works</h2>
@@ -71,6 +92,8 @@
                 <li>🎮 Create a room and share the code or QR with your opponent</li>
                 <li>⚔️ Both players compete simultaneously</li>
                 <li>💥 Clearing multiple lines sends "garbage" to your opponent</li>
+                <li>⚡ Earn power-ups every 10 lines cleared! Use them strategically</li>
+                <li>👁️ Friends can spectate your matches in real-time</li>
                 <li>🏆 First player to game over loses!</li>
                 <li>📱 Scan QR code for quick mobile joining!</li>
             </ul>
@@ -268,6 +291,14 @@ function joinRoom(event) {
     const code = document.getElementById('roomCode').value.toUpperCase().trim();
     if (code) {
         window.location.href = `/multiplayer/join/${code}/`;
+    }
+}
+
+function spectateRoom(event) {
+    event.preventDefault();
+    const code = document.getElementById('spectateRoomCode').value.toUpperCase().trim();
+    if (code) {
+        window.location.href = `/multiplayer/spectate/${code}/`;
     }
 }
 </script>
